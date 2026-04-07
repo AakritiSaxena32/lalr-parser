@@ -1,15 +1,12 @@
 const LR1 = (()=>{
-  // cKey identifies the core of the item (ignoring lookaheads)
   function cKey(it){return `${it.lhs}|${it.rhs.join(' ')}|${it.dot}`;}
 
-  // sKey identifies the entire state for LR(1) (core + grouped lookaheads)
   function sKey(items){
     return items.map(it => `${cKey(it)}|${[...it.las].sort().join(',')}`).sort().join('||');
   }
 
   function closure(items){
     const m = new Map();
-    // Initialize map, grouping any incoming items by their core
     items.forEach(it => {
       const k = cKey(it);
       if(!m.has(k)) m.set(k, { lhs: it.lhs, rhs: it.rhs, dot: it.dot, las: new Set(it.las) });
@@ -24,7 +21,6 @@ const LR1 = (()=>{
       const B = it.rhs[it.dot]; 
       if(!isNT(B)) continue;
 
-      // Compute FIRST sets for all grouped lookaheads
       const lasToAdd = new Set();
       it.las.forEach(la => {
         const f = FirstFollow.firstOfSeq(it.rhs.slice(it.dot + 1), la);
@@ -46,7 +42,6 @@ const LR1 = (()=>{
               added = true;
             }
           });
-          // If new lookaheads propagate, re-queue the core for closure expansion
           if(added && !q.includes(existing)) q.push(existing);
         }
       });
@@ -60,18 +55,21 @@ const LR1 = (()=>{
     return mv.length ? closure(mv) : null;
   }
 
-  function build(){
-    // Initialize from the unique augmented start production.
+ function build(){
     const startProd = State.augProds[0];
     const s0 = closure([{ lhs: startProd.lhs, rhs: startProd.rhs, dot: 0, las: new Set(['$']) }]);
     State.lr1States = [{ id: 0, items: s0 }];
     const km = new Map([[sKey(s0), 0]]);
     const q = [0];
 
+    State.lr1Trans = {}; // Initialize transition map
+
     while(q.length){
       const id = q.shift();
       const st = State.lr1States[id];
       const syms = new Set();
+      
+      State.lr1Trans[id] = {}; // Initialize state map
       
       st.items.forEach(it => { if(it.dot < it.rhs.length) syms.add(it.rhs[it.dot]); });
 
@@ -79,14 +77,20 @@ const LR1 = (()=>{
         const nx = gotoItems(st.items, sym); 
         if(!nx) return;
         const k = sKey(nx);
+        let ni;
         if(!km.has(k)){
-          const ni = State.lr1States.length;
+          ni = State.lr1States.length;
           km.set(k, ni);
           State.lr1States.push({ id: ni, items: nx });
           q.push(ni);
+        } else {
+          ni = km.get(k);
         }
+        State.lr1Trans[id][sym] = ni; // Record the exact LR(1) transition
       });
     }
+    
+    State.lr1KeyMap = km; 
   }
 
   function render(){
@@ -98,7 +102,7 @@ const LR1 = (()=>{
         const nx = gotoItems(st.items, sym);
         if(!nx) return;
         const k = sKey(nx);
-        const tid = State.lr1States.findIndex(s => sKey(s.items) === k);
+        const tid = State.lr1KeyMap.get(k);
         if(tid > 0 && !origin[tid]) origin[tid] = { from: st.id, sym };
       });
     });
@@ -113,7 +117,7 @@ const LR1 = (()=>{
       st.items.forEach(it => {
         const be = it.rhs.slice(0, it.dot).map(s => isNT(s) ? `<span class="nt-sym">${esc(s)}</span>` : esc(s)).join(' ');
         const af = it.rhs.slice(it.dot).map(s => isNT(s) ? `<span class="nt-sym">${esc(s)}</span>` : esc(s)).join(' ');
-        const las = [...it.las].sort().join('/'); // Neatly join lookaheads with a slash
+        const las = [...it.las].sort().join('/'); 
         h += `<li><span class="nt-sym">${esc(it.lhs)}</span> &#8594; ${be} <span class="dot-sym">•</span> ${af} <span class="la-sym">, ${esc(las)}</span></li>`;
       });
       h += '</ul></div>';

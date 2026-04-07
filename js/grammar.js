@@ -1,39 +1,36 @@
 const Grammar = (()=>{
   function parseText(txt){
     const g={}; let start=null;
+    let currentLhs = null; // Track active non-terminal for multiline inputs
+
     txt.trim().split('\n').forEach(line=>{
       line=line.trim(); if(!line)return;
-      const idx=line.indexOf('->'); if(idx<0)return;
-      const lhs=line.slice(0,idx).trim(), rhsPart=line.slice(idx+2);
-      if(!lhs)return; if(!start)start=lhs;
-      if(!g[lhs])g[lhs]=[];
+      
+      let rhsPart = line;
+      const idx=line.indexOf('->'); 
+      
+      if(idx >= 0){
+        currentLhs=line.slice(0,idx).trim();
+        rhsPart=line.slice(idx+2);
+        if(!currentLhs)return; 
+        if(!start)start=currentLhs;
+        if(!g[currentLhs])g[currentLhs]=[];
+      } else if (currentLhs && line.startsWith('|')) {
+        rhsPart = line.substring(1).trim(); // Remove leading |
+      } else {
+        return; // Invalid line format
+      }
+
       rhsPart.split('|').forEach(alt=>{
         const syms=alt.trim().split(/\s+/).filter(Boolean);
-        if(syms.length)g[lhs].push(syms.join(' '));
+        g[currentLhs].push(syms.length ? syms.join(' ') : 'ε');
       });
     });
     return{g,start};
   }
+  
   function hasLR(g){ for(const nt in g)for(const p of g[nt])if(p.split(' ')[0]===nt)return true; return false; }
-  function elimLR(g){
-    const nts=Object.keys(g),ng={};
-    for(let i=0;i<nts.length;i++){
-      const Ai=nts[i]; let prods=[...g[Ai]];
-      for(let j=0;j<i;j++){
-        const Aj=nts[j],exp=[];
-        prods.forEach(p=>{
-          const ss=p.split(' ');
-          if(ss[0]===Aj){const beta=ss.slice(1).join(' ');(ng[Aj]||g[Aj]).forEach(ap=>exp.push((ap+(beta?' '+beta:'')).trim()));}
-          else exp.push(p);
-        }); prods=exp;
-      }
-      const al=[],be=[];
-      prods.forEach(p=>{const ss=p.split(' ');ss[0]===Ai?al.push(ss.slice(1).join(' ')):be.push(p);});
-      if(al.length){const Ap=Ai+"'";ng[Ai]=be.length?be.map(b=>(b+' '+Ap).trim()):[Ap];ng[Ap]=[...al.map(a=>(a+' '+Ap).trim()),'ε'];}
-      else ng[Ai]=prods;
-    }
-    return ng;
-  }
+  
   function augment(g,s){
     let ns=s+"'";
     while(g[ns])ns+="'";
@@ -44,14 +41,12 @@ const Grammar = (()=>{
     State.augProds.forEach(p=>p.rhs.forEach(x=>{if(!State.nonterms.includes(x))ts.add(x);}));
     ts.delete('ε'); State.terms=[...ts].sort();
   }
-  function renderResult(lrWarn,transformed,ambigHtml){
+  
+  function renderResult(lrWarn,ambigHtml){
     ambigHtml=ambigHtml||'';
     let h='';
     if(lrWarn){
-      h+=`<div class="msg msg-warn"><span class="msg-ico">&#9888;</span><span>Left recursion detected and automatically eliminated.</span></div>`;
-      h+=`<div class="rb" style="margin-top:10px"><div class="rb-head">transformed grammar</div><div class="rb-body"><div class="code-lines">`;
-      for(const nt in transformed)h+=`<div><span class="pn"></span><span class="nt">${esc(nt)}</span><span class="arrow"> &#8594; </span><span class="kw">${transformed[nt].map(esc).join(' | ')}</span></div>`;
-      h+=`</div></div></div>`;
+      h+=`<div class="msg msg-warn"><span class="msg-ico">&#9888;</span><span>Left recursion detected. LALR handles this natively.</span></div>`;
     }else{
       h+=`<div class="msg msg-ok"><span class="msg-ico">&#10003;</span><span>No left recursion detected.</span></div>`;
     }
@@ -62,18 +57,10 @@ const Grammar = (()=>{
     document.getElementById('step0Result').innerHTML=h;
   }
 
-  // ── Ambiguity analysis ──
-  // True ambiguity requires parsing — we detect strong structural indicators:
-  // 1. Dangling-else pattern: a NT has two productions where one is a prefix of another
-  // 2. Operator grammar with no precedence encoding: e.g. E -> E op E on both sides
-  // 3. After building the table, shift/reduce or reduce/reduce conflicts = ambiguous
-  // We run a heuristic check on the raw grammar before augmenting.
   function checkAmbiguity(g){
     const reasons=[];
     for(const nt in g){
       const prods=g[nt];
-      // Check: same NT appears on both left and right of an operator in multiple rules
-      // e.g.  E -> E + E  and  E -> E * E  — classic ambiguous operator grammar
       const selfRecBoth=prods.filter(p=>{
         const ss=p.split(' ');
         return ss[0]===nt && ss[ss.length-1]===nt && ss.length>=3;
@@ -81,7 +68,6 @@ const Grammar = (()=>{
       if(selfRecBoth.length>=2){
         reasons.push(`"${nt}" has ${selfRecBoth.length} rules of the form ${nt} op ${nt} — no operator precedence encoded, so the same expression can be parsed in multiple ways.`);
       }
-      // Check: one production is a strict prefix of another (dangling-else style)
       for(let i=0;i<prods.length;i++){
         for(let j=0;j<prods.length;j++){
           if(i===j)continue;
@@ -91,13 +77,11 @@ const Grammar = (()=>{
           }
         }
       }
-      // Check: two or more productions that are purely epsilon or single terminals
       const epsilonOrSingle=prods.filter(p=>p==='ε'||p.split(' ').length===1);
       if(epsilonOrSingle.length>=2 && prods.length===epsilonOrSingle.length){
         reasons.push(`"${nt}" has multiple single-token or epsilon alternatives with no distinguishing context.`);
       }
     }
-    // Deduplicate
     return [...new Set(reasons)];
   }
 
@@ -124,13 +108,13 @@ const Grammar = (()=>{
     if(!start){alert('Cannot parse grammar — check format (use ->).');return;}
     State.reset();
     for(let i=1;i<=6;i++){const e=document.getElementById('step'+i+'Result');if(e)e.innerHTML='';}
-    // Reset subtitle to base state
+    
     const subElReset=document.getElementById('step0Sub');
     if(subElReset) subElReset.innerHTML='Enter a context-free grammar. Use <code>-&gt;</code> and <code>|</code> for alternatives.';
     State.startSymbol=start;
-    let wg=g,lrWarn=false,lfWarn=false,transformed=null;
-    if(hasLR(g)){lrWarn=true;transformed=elimLR(JSON.parse(JSON.stringify(g)));wg=transformed;}
-    // Left factoring: two productions for same NT share a common prefix
+    
+    let wg=g, lrWarn=hasLR(g), lfWarn=false;
+    
     for(const nt in g){
       const prods=g[nt];
       for(let i=0;i<prods.length;i++){
@@ -144,18 +128,14 @@ const Grammar = (()=>{
     FirstFollow.compute();
     State.grammarOK=true;
 
-    // Step 0 subtitle stays fixed — recursion/factoring info shown in result block below
-
-    // Ambiguity check
     const ambigReasons=checkAmbiguity(g);
     const isAmbig=ambigReasons.length>0;
 
-    renderResult(lrWarn,transformed,renderAmbiguity(ambigReasons));
+    renderResult(lrWarn,renderAmbiguity(ambigReasons));
     FirstFollow.render();
 
-    // Build voice announcement
     const voiceLines=['Grammar compiled successfully.'];
-    if(lrWarn) voiceLines.push('Left recursion was detected and eliminated automatically.');
+    if(lrWarn) voiceLines.push('Left recursion was detected. LALR handles this natively, so the grammar remains unchanged.');
     if(lfWarn) voiceLines.push('Left factoring was detected in this grammar.');
     if(isAmbig){
       voiceLines.push('Warning: this grammar appears to be ambiguous.');
@@ -166,13 +146,13 @@ const Grammar = (()=>{
     }
     voiceLines.push('Use the sidebar to explore each step.');
 
-    // Topbar message — reflect the most important finding
     let tbMsg = 'Grammar compiled.';
     if(isAmbig) tbMsg = '⚠ Ambiguous grammar detected — see analysis below.';
-    else if(lrWarn && lfWarn) tbMsg = 'Grammar compiled. Left recursion & left factoring eliminated.';
-    else if(lrWarn) tbMsg = 'Grammar compiled. Left recursion detected and eliminated.';
+    else if(lrWarn && lfWarn) tbMsg = 'Grammar compiled. Left recursion & left factoring detected.';
+    else if(lrWarn) tbMsg = 'Grammar compiled. Left recursion detected.';
     else if(lfWarn) tbMsg = 'Grammar compiled. Left factoring detected.';
     else tbMsg = 'Grammar compiled. No structural issues detected.';
+    
     document.getElementById('tbMsg').textContent = tbMsg;
     Voice.speakSequence(voiceLines,350);
   }
@@ -193,9 +173,9 @@ const Grammar = (()=>{
     if(reasons.length>0){
       Voice.setMessage('Example grammar loaded. Note: this grammar appears ambiguous. Click Run to compile and see details.');
     } else if(lrPresent){
-      Voice.setMessage('Example grammar loaded. It has left recursion which will be eliminated automatically. Click Run to compile.');
+      Voice.setMessage('Example grammar loaded. It contains left recursion. Click Run to compile.');
     } else if(lfPresent){
-      Voice.setMessage('Example grammar loaded. It has left factoring which will be eliminated automatically. Click Run to compile.');
+      Voice.setMessage('Example grammar loaded. It contains left factoring. Click Run to compile.');
     } else {
       Voice.setMessage('Example grammar loaded. Click Run to compile it.');
     }

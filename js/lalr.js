@@ -2,46 +2,50 @@ const LALR = (()=>{
   function build(){
     const cg=new Map();
     State.lr1States.forEach(st=>{
-      // Since LR1 groups cores perfectly now, this accurately maps identical cores
       const ck=st.items.map(LR1.cKey).sort().join('||');
       if(!cg.has(ck))cg.set(ck,[]); cg.get(ck).push(st.id);
     });
     
     State.lalrStates=[]; const map=new Map();
+    State.lalrTrans={};
     
     cg.forEach(ids=>{
-      const lid=State.lalrStates.length; ids.forEach(id=>map.set(id,lid));
+      // Sort and join the merged LR1 IDs to create the LALR ID (e.g., [1, 6] -> '16')
+      ids.sort((a,b)=>a-b);
+      const lid=ids.join(''); 
+      ids.forEach(id=>map.set(id,lid));
       const cm=new Map();
       
       ids.forEach(id=>State.lr1States[id].items.forEach(it=>{
         const k=LR1.cKey(it);
         if(!cm.has(k))cm.set(k,{lhs:it.lhs,rhs:it.rhs,dot:it.dot,las:new Set()});
-        // Group all merged lookaheads from multiple LR1 states
         it.las.forEach(la => cm.get(k).las.add(la));
       }));
       
-      // Flatten the lookaheads specifically so parsetable.js can read `it.la` as strings
-      const items=[]; 
-      cm.forEach(({lhs,rhs,dot,las})=>las.forEach(la=>items.push({lhs,rhs,dot,la})));
-      State.lalrStates.push({id:lid,items});
-    });
+      // ... top half of lalr.js build() stays the same ...
+              const items=[]; 
+              cm.forEach(({lhs,rhs,dot,las})=>las.forEach(la=>items.push({lhs,rhs,dot,la})));
+              State.lalrStates.push({id:lid,items});
+              State.lalrTrans[lid] = {}; // Initialize transition object
+            });
 
-    State.lalrTrans=State.lalrStates.map(()=>({}));
-    State.lr1States.forEach(st=>{
-      const lf=map.get(st.id);
-      const syms=new Set(); st.items.forEach(it=>{if(it.dot<it.rhs.length)syms.add(it.rhs[it.dot]);});
-      syms.forEach(sym=>{
-        const nx=LR1.gotoItems(st.items,sym); if(!nx)return;
-        const tk=LR1.sKey(nx),tgt=State.lr1States.find(s=>LR1.sKey(s.items)===tk); if(!tgt)return;
-        const lt=map.get(tgt.id);
-        if(State.lalrTrans[lf][sym]===undefined)State.lalrTrans[lf][sym]=lt;
-      });
-    });
-  }
+            // FIX: Directly map LR1 transitions to LALR transitions
+            State.lr1States.forEach(st=>{
+              const lf = map.get(st.id);
+              const tr = State.lr1Trans[st.id] || {};
+              for(const sym in tr){
+                const tgtId = tr[sym];
+                const lt = map.get(tgtId);
+                State.lalrTrans[lf][sym] = lt;
+              }
+            });
+          }
+// ...
   
   function render(){
     const origin={};
-    State.lalrStates.forEach((_,from)=>{
+    State.lalrStates.forEach(st=>{
+      const from = st.id;
       const tr=State.lalrTrans[from]||{};
       Object.entries(tr).forEach(([sym,to])=>{
         if(to!==from&&!origin[to])origin[to]={from,sym};
@@ -49,12 +53,11 @@ const LALR = (()=>{
     });
     let h='';
     State.lalrStates.forEach(st=>{
-      const lbl=st.id===0
+      const lbl=st.id==='0'
         ?`<span style="color:var(--c)">I0</span> <span style="color:var(--txt3)">· initial state</span>`
         :`<span style="color:var(--c)">I${st.id}</span> <span style="color:var(--txt3)">= GOTO(I${origin[st.id]?.from??'?'}, <span style="color:var(--cy)">${esc(origin[st.id]?.sym??'?')}</span>)</span>`;
       h+=`<div class="si-box"><div class="si-head">${lbl}</div><ul class="si-list">`;
       
-      // Re-group just for rendering purposes to keep LALR visually clean
       const grp = new Map();
       st.items.forEach(it => {
          const ck = LR1.cKey(it);

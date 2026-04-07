@@ -1,13 +1,26 @@
 const Parser = (()=>{
 
   // ── PARSE SIMULATION ──
+// ── PARSE SIMULATION ──
   function simulate(){
     const raw=document.getElementById('inputString').value.trim();
     if(!raw){alert('Enter space-separated tokens.');return;}
     const toks=[...raw.split(/\s+/).filter(Boolean),'$'];
-    let stk=[0],sym=[],ns=[],idx=0,accepted=false;
+    
+    // FIX: Dynamically find the LALR state that contains the start production
+    const startState = State.lalrStates.find(s => 
+      s.items.some(it => it.lhs === State.augProds[0].lhs && it.dot === 0)
+    );
+    
+    if(!startState){alert('Cannot find initial state.');return;}
+    
+    // Initialize the stack with the correct LALR start ID (e.g., '0' or '01')
+    let stk=[startState.id],sym=[],ns=[],idx=0,accepted=false;
     State.lastRoot=null;
     const rows=[];
+    
+    // ... rest of the simulate loop remains exactly the same ...
+    
     while(true){
       const state=stk[stk.length-1],la=toks[idx],act=State.ACTION[state]?.[la];
       rows.push({stk:[...stk],sym:[...sym],inp:toks.slice(idx),act:act||'ERROR'});
@@ -18,7 +31,8 @@ const Parser = (()=>{
         break;
       }
       if(act[0]==='s'){
-        const j=parseInt(act.slice(1));
+        // Slice the string but DO NOT parseInt it! We need the raw string ID (e.g. '16')
+        const j=act.slice(1);
         stk.push(j);sym.push(la);ns.push({sym:la,children:[]});idx++;
       }else if(act[0]==='r'){
         const pi=parseInt(act.slice(1)),prod=State.augProds[pi],n=prod.rhs.length;
@@ -52,12 +66,11 @@ const Parser = (()=>{
   }
 
   // ── SVG PARSE TREE RENDERER ──
-  const NODE_R = 22;   // node circle radius
-  const H_GAP  = 20;   // min horizontal gap between siblings
-  const V_GAP  = 70;   // vertical gap between levels
-  const PAD    = 36;   // canvas padding
+  const NODE_R = 22;   
+  const H_GAP  = 20;   
+  const V_GAP  = 70;   
+  const PAD    = 36;   
 
-  // Step 1: compute subtree width (bottom-up)
   function _measure(node){
     if(!node.children||!node.children.length){
       node._w = NODE_R*2;
@@ -68,7 +81,6 @@ const Parser = (()=>{
     node._w = Math.max(NODE_R*2, total);
   }
 
-  // Step 2: assign x,y positions (top-down, centred)
   function _place(node, x, y){
     node._x = x;
     node._y = y;
@@ -81,7 +93,6 @@ const Parser = (()=>{
     });
   }
 
-  // Step 3: collect canvas bounds
   function _bounds(node, b){
     b.minX=Math.min(b.minX, node._x - NODE_R);
     b.maxX=Math.max(b.maxX, node._x + NODE_R);
@@ -89,28 +100,23 @@ const Parser = (()=>{
     (node.children||[]).forEach(c=>_bounds(c,b));
   }
 
-  // Step 4: emit SVG strings into arrays (lines first, then circles, then text)
   function _emit(node, dx, lines, circles, texts){
     const cx = node._x + dx;
     const cy = node._y;
     const isTerm = !isNT(node.sym);
 
-    // Lines to children (drawn behind circles)
     (node.children||[]).forEach(child=>{
       const ccx = child._x + dx;
       const ccy = child._y;
-      // Line from bottom of parent to top of child
       lines.push('<line x1="'+cx+'" y1="'+(cy+NODE_R)+'" x2="'+ccx+'" y2="'+(ccy-NODE_R)+'" stroke="#243346" stroke-width="1.5"/>');
       _emit(child, dx, lines, circles, texts);
     });
 
-    // Circle
     const fill   = isTerm ? 'rgba(0,217,200,0.10)'   : 'rgba(167,139,250,0.12)';
     const stroke = isTerm ? 'rgba(0,217,200,0.40)'    : 'rgba(167,139,250,0.40)';
     const tcolor = isTerm ? '#00d9c8'                 : '#a78bfa';
     circles.push('<circle cx="'+cx+'" cy="'+cy+'" r="'+NODE_R+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1"/>');
 
-    // Label (truncate if too long)
     const lbl = node.sym.length > 5 ? node.sym.slice(0,4)+'\u2026' : node.sym;
     texts.push('<text x="'+cx+'" y="'+cy+'" text-anchor="middle" dominant-baseline="central" font-family="JetBrains Mono,monospace" font-size="11" font-weight="500" fill="'+tcolor+'">'+esc(lbl)+'</text>');
   }
