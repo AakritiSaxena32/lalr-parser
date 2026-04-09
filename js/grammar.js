@@ -1,7 +1,7 @@
 const Grammar = (()=>{
   function parseText(txt){
     const g={}; let start=null;
-    let currentLhs = null; // Track active non-terminal for multiline inputs
+    let currentLhs = null; 
 
     txt.trim().split('\n').forEach(line=>{
       line=line.trim(); if(!line)return;

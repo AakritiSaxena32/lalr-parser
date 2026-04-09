@@ -80,12 +80,8 @@ const Nav = (()=>{
     document.getElementById('btnNext').addEventListener('click',()=>goTo(State.currentStep+1));
     document.getElementById('btnStart').addEventListener('click',()=>goTo(0));
 
-    // Show welcome silently behind the overlay
     showWelcome(false);
 
-    // Tap overlay: dismissed on first interaction, which satisfies
-    // the browser's user-gesture requirement for speechSynthesis.
-    // Speech fires the instant the overlay is tapped — zero extra delay.
     const overlay=document.getElementById('tapOverlay');
     let unlocked=false;
 

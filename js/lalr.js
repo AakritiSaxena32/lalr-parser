@@ -10,7 +10,6 @@ const LALR = (()=>{
     State.lalrTrans={};
     
     cg.forEach(ids=>{
-      // Sort and join the merged LR1 IDs to create the LALR ID (e.g., [1, 6] -> '16')
       ids.sort((a,b)=>a-b);
       const lid=ids.join(''); 
       ids.forEach(id=>map.set(id,lid));
@@ -22,14 +21,12 @@ const LALR = (()=>{
         it.las.forEach(la => cm.get(k).las.add(la));
       }));
       
-      // ... top half of lalr.js build() stays the same ...
               const items=[]; 
               cm.forEach(({lhs,rhs,dot,las})=>las.forEach(la=>items.push({lhs,rhs,dot,la})));
               State.lalrStates.push({id:lid,items});
-              State.lalrTrans[lid] = {}; // Initialize transition object
+              State.lalrTrans[lid] = {};
             });
 
-            // FIX: Directly map LR1 transitions to LALR transitions
             State.lr1States.forEach(st=>{
               const lf = map.get(st.id);
               const tr = State.lr1Trans[st.id] || {};
@@ -40,8 +37,7 @@ const LALR = (()=>{
               }
             });
           }
-// ...
-  
+
   function render(){
     const origin={};
     State.lalrStates.forEach(st=>{

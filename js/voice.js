@@ -1,33 +1,27 @@
 // ── VOICE MODULE ──
-// Cross-OS female voice selection with mute/resume support.
-// Priority: Apple Siri voices → Google female → Microsoft Zira → any en-US
 
 const Voice = (()=>{
   let muted = false;
   let femaleVoice = null;
   let voicesLoaded = false;
 
-  // Per-OS best female voice priority lists
+
   const VOICE_PRIORITY = [
-    // Apple / macOS / iOS — Siri voices
-    'Samantha',       // macOS/iOS default Siri (en-US)
+    'Samantha',       
     'Siri',
-    'Karen',          // Australian Siri
-    'Moira',          // Irish Siri
-    'Tessa',          // South African Siri
-    'Fiona',          // Scottish Siri
-    'Ava',            // Enhanced macOS
-    'Allison',        // Enhanced macOS
-    'Victoria',       // macOS
-    'Nicky',          // macOS Siri-style
-    // Google (Chrome on Windows/Android/Linux)
+    'Karen',          
+    'Moira',          
+    'Tessa',          
+    'Fiona',          
+    'Ava',            
+    'Allison',        
+    'Victoria',       
+    'Nicky',         
     'Google US English',
     'Google UK English Female',
-    // Microsoft (Windows / Edge)
     'Microsoft Zira - English (United States)',
     'Microsoft Zira Desktop - English (United States)',
     'Zira',
-    // Amazon / Other
     'Joanna',
     'Amy',
   ];
@@ -37,27 +31,22 @@ const Voice = (()=>{
     if(!voices.length) return;
     voicesLoaded = true;
 
-    // Try priority list first
     for(const name of VOICE_PRIORITY){
       const v = voices.find(v => v.name === name);
       if(v){ femaleVoice = v; return; }
     }
-    // Fallback: any voice with 'female' in name or description
     femaleVoice = voices.find(v => /female/i.test(v.name))
-      // Fallback: prefer en-US then en-GB then any English
       || voices.find(v => v.lang === 'en-US')
       || voices.find(v => v.lang === 'en-GB')
       || voices.find(v => v.lang.startsWith('en'))
       || voices[0];
   }
 
-  // Pre-warm immediately and on async voice load
   _pickVoice();
   if('onvoiceschanged' in window.speechSynthesis){
     window.speechSynthesis.onvoiceschanged = () => { _pickVoice(); };
   }
 
-  // Resume state
   let _resumeSentences = [];
   let _resumeIndex = 0;
   let _resumePauseMs = 180;
@@ -120,7 +109,6 @@ const Voice = (()=>{
       if(muted){
         window.speechSynthesis.cancel();
       } else {
-        // Resume from where we left off
         if(_resumeSentences.length > 0){
           speakSequence(_resumeSentences.slice(_resumeIndex), _resumePauseMs);
         } else if(_resumeText){

@@ -8,7 +8,7 @@ const State = {
   ACTION: {}, GOTO: {},
   lastRoot: null,
   lr1KeyMap: new Map(),
-  lr1Trans: {}, // ADDED: To track pure LR(1) transitions
+  lr1Trans: {}, 
   
   reset() {
     this.augProds=[]; this.nonterms=[]; this.terms=[];

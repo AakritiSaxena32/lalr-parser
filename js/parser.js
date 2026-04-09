@@ -1,25 +1,20 @@
 const Parser = (()=>{
 
-  // ── PARSE SIMULATION ──
-// ── PARSE SIMULATION ──
   function simulate(){
     const raw=document.getElementById('inputString').value.trim();
     if(!raw){alert('Enter space-separated tokens.');return;}
     const toks=[...raw.split(/\s+/).filter(Boolean),'$'];
-    
-    // FIX: Dynamically find the LALR state that contains the start production
+
     const startState = State.lalrStates.find(s => 
       s.items.some(it => it.lhs === State.augProds[0].lhs && it.dot === 0)
     );
     
     if(!startState){alert('Cannot find initial state.');return;}
-    
-    // Initialize the stack with the correct LALR start ID (e.g., '0' or '01')
+
     let stk=[startState.id],sym=[],ns=[],idx=0,accepted=false;
     State.lastRoot=null;
     const rows=[];
-    
-    // ... rest of the simulate loop remains exactly the same ...
+
     
     while(true){
       const state=stk[stk.length-1],la=toks[idx],act=State.ACTION[state]?.[la];
@@ -31,7 +26,7 @@ const Parser = (()=>{
         break;
       }
       if(act[0]==='s'){
-        // Slice the string but DO NOT parseInt it! We need the raw string ID (e.g. '16')
+
         const j=act.slice(1);
         stk.push(j);sym.push(la);ns.push({sym:la,children:[]});idx++;
       }else if(act[0]==='r'){
@@ -65,7 +60,7 @@ const Parser = (()=>{
     Voice.setMessage(accepted?'Accepted! See the parse tree in step 06.':'Rejected. Check your input tokens.');
   }
 
-  // ── SVG PARSE TREE RENDERER ──
+
   const NODE_R = 22;   
   const H_GAP  = 20;   
   const V_GAP  = 70;   

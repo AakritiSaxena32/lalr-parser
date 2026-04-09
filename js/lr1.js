@@ -62,14 +62,14 @@ const LR1 = (()=>{
     const km = new Map([[sKey(s0), 0]]);
     const q = [0];
 
-    State.lr1Trans = {}; // Initialize transition map
+    State.lr1Trans = {}; 
 
     while(q.length){
       const id = q.shift();
       const st = State.lr1States[id];
       const syms = new Set();
       
-      State.lr1Trans[id] = {}; // Initialize state map
+      State.lr1Trans[id] = {}; 
       
       st.items.forEach(it => { if(it.dot < it.rhs.length) syms.add(it.rhs[it.dot]); });
 
@@ -86,7 +86,7 @@ const LR1 = (()=>{
         } else {
           ni = km.get(k);
         }
-        State.lr1Trans[id][sym] = ni; // Record the exact LR(1) transition
+        State.lr1Trans[id][sym] = ni; 
       });
     }
     

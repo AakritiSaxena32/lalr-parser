@@ -4,7 +4,7 @@ const ParseTable = (()=>{
     State.ACTION={};
     State.GOTO={};
     
-    // We are back to using LALR states!
+
     State.lalrStates.forEach(st=>{
       const i = st.id;
       State.ACTION[i]={};
@@ -15,7 +15,6 @@ const ParseTable = (()=>{
           if(!isNT(sym)&&sym!=='ε'){
             const j=State.lalrTrans[i][sym];
             if(j!==undefined) {
-                // Check for Shift/Reduce conflicts
                 const current = State.ACTION[i][sym];
                 if (!current) State.ACTION[i][sym] = 's'+j;
                 else if (!current.includes('s'+j)) State.ACTION[i][sym] = current + '/s' + j;
@@ -30,7 +29,6 @@ const ParseTable = (()=>{
                 if (!currentAction) {
                     State.ACTION[i][it.la] = 'r'+pi;
                 } else if (!currentAction.includes('r'+pi)) {
-                    // This is where the Reduce/Reduce conflict is caught!
                     State.ACTION[i][it.la] = currentAction + '/r' + pi;
                 }
             }
@@ -74,7 +72,6 @@ const ParseTable = (()=>{
       tl.forEach((t,ti)=>{
         const v=State.ACTION[i][t]||'';
         let c='';
-        // Mark conflicts in RED so they stand out
         if(v.includes('/')) c='c-er'; 
         else if(v.startsWith('s')) c='c-sh';
         else if(v.startsWith('r')) c='c-re';
