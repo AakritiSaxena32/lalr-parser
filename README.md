@@ -12,7 +12,7 @@ You can try the tool directly in your browser: [lalr-parser.vercel.app](https://
 ## **✨ Features**
 
 * **Grammar Input:** Define your custom context-free grammar via a simple text interface.
-* **Collection of Items:** Visualize the $LR(0)$ and $LR(1)$ item sets used to build the states.
+* **Collection of Items:** Visualize the $LR(1)$ item sets used to build the states.
 * **Parsing Table:** Automatically generates the **Action** and **Goto** tables.
 * **Step-by-Step Validation:** Check if a specific string is accepted by the grammar.
 
