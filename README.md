@@ -5,7 +5,7 @@ A lightweight, web-based tool designed to visualize and generate **LALR (Look-Ah
 
 
 ### **🚀 Live Demo**
-You can try the tool directly in your browser: [lalr-parser.vercel.app](lalr-parser-git-main-aakritisaxena2005-9259s-projects.vercel.app)
+You can try the tool directly in your browser: [lalr-parser.vercel.app]([lalr-parser-git-main-aakritisaxena2005-9259s-projects.vercel.app](https://lalr-parser-git-main-aakritisaxena2005-9259s-projects.vercel.app/))
 
 
 
