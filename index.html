@@ -3,36 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LALR Parser Generator</title>
+  <title>Visionary Parser</title>
   <meta name="description" content="Interactive step-by-step LALR(1) parser generator with voice guidance.">
-
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-
-  <!-- Styles -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<!-- TAP-TO-BEGIN OVERLAY — dismissed on first interaction, unlocks speech immediately -->
 <div id="tapOverlay">
   <div id="tapBox">
     <div id="tapPulse"></div>
     <div id="tapIcon">🎙️</div>
-    <div id="tapTitle">LALR<em>.</em>parse</div>
+    <div id="tapTitle">Visionary<em>.</em>Parser</div>
     <div id="tapSub">Tap anywhere to begin with voice</div>
   </div>
 </div>
 
 <div class="shell">
-
-  <!-- ── SIDEBAR ── -->
   <aside class="sidebar">
     <div class="sb-header">
       <div class="sb-eyebrow">compiler tools</div>
-      <div class="sb-title">LALR<em>.</em>parse</div>
+      <div class="sb-title">Visionary<em>.</em>Parser</div>
     </div>
     <nav class="sb-nav" id="sbNav"></nav>
     <div class="sb-footer">
@@ -44,10 +37,9 @@
     </div>
   </aside>
 
-  <!-- ── MAIN ── -->
   <div class="main">
     <header class="topbar">
-      <span class="tb-crumb">lalr-parse <span class="tb-sep">/</span> <b id="tbStep">welcome</b></span>
+      <span class="tb-crumb">visionary-parser <span class="tb-sep">/</span> <b id="tbStep">welcome</b></span>
       <span class="tb-msg" id="tbMsg">Ready — enter a grammar to begin.</span>
       <div class="tb-nav">
         <button class="tb-btn" id="btnPrev">&#8249;</button>
@@ -56,145 +48,80 @@
     </header>
 
     <div class="content">
-
-      <!-- WELCOME -->
       <div id="welcome">
         <div class="wl-eyebrow">compiler tool</div>
-        <div class="wl-title">LALR<em>.</em>parse</div>
+        <div class="wl-title">Visionary<em>.</em>Parser</div>
         <div class="wl-tagline">An interactive step-by-step LALR(1) parser generator with voice guidance.</div>
 
         <div class="wl-cards">
           <div class="wl-card">
             <div class="wl-card-icon">&#9654;</div>
             <div class="wl-card-title">What is LALR?</div>
-            <div class="wl-card-body"><b>Look-Ahead LR</b> parsing reads input <b>L</b>eft to right, builds a <b>R</b>ightmost derivation, and uses <b>1 token of lookahead</b> to decide every shift or reduce action.</div>
+            <div class="wl-card-body"><b>Look-Ahead LR</b> parsing reads input <b>L</b>eft to right, builds a <b>R</b>ightmost derivation, and uses <b>1 token of lookahead</b>.</div>
           </div>
           <div class="wl-card">
             <div class="wl-card-icon">&#9889;</div>
             <div class="wl-card-title">Why LALR?</div>
-            <div class="wl-card-body">Powers real-world tools like <b>YACC</b> and <b>Bison</b>. Handles most programming languages with <b>compact tables</b> and zero ambiguity for well-formed grammars.</div>
-          </div>
-          <div class="wl-card">
-            <div class="wl-card-icon">&#9881;</div>
-            <div class="wl-card-title">How it works</div>
-            <div class="wl-card-body">Builds the full <b>LR(1) canonical collection</b>, then merges states sharing identical cores — cutting table size without losing parse accuracy.</div>
-          </div>
-          <div class="wl-card">
-            <div class="wl-card-icon">&#9878;</div>
-            <div class="wl-card-title">What you'll explore</div>
-            <div class="wl-card-body">FIRST &amp; FOLLOW sets · LR(1) item sets · LALR state merging · ACTION/GOTO table · live parse simulation · parse tree.</div>
+            <div class="wl-card-body">Powers real-world tools like <b>YACC</b> and <b>Bison</b> with compact tables and zero ambiguity.</div>
           </div>
         </div>
-
         <div class="wl-divider"></div>
-        <div class="wl-hint">Select any step from the sidebar to begin, or click Start below.</div>
         <button class="wl-start" id="btnStart">&#9654;&nbsp;&nbsp;Start &mdash; Enter Grammar</button>
       </div>
 
-      <!-- STEP 0 : Grammar -->
       <div class="step-pane" id="pane0">
         <div class="sh-tag">step 00</div>
         <div class="sh-h">Grammar Input</div>
-        <div class="sh-sub" id="step0Sub">Enter a context-free grammar. Use <code>-&gt;</code> and <code>|</code> for alternatives.</div>
+        <div class="sh-sub">Describe your grammar in plain English or enter BNF directly.</div>
+        
+        <div class="btn-row" style="margin-bottom: 16px;">
+          <button class="btn btn-g" id="modeBnf" style="border-color:var(--c); color:var(--c)">BNF Mode</button>
+          <button class="btn btn-g" id="modeNlp">NLP Assistant</button>
+        </div>
+
         <div class="card">
-          <div class="card-bar"><div class="dots"><span></span><span></span><span></span></div><span class="card-title">grammar</span></div>
+          <div class="card-bar"><div class="dots"><span></span><span></span><span></span></div><span class="card-title" id="modeTitle">direct bnf entry</span></div>
           <div class="card-body">
-            <div class="field-label">productions</div>
-            <textarea id="grammarInput" placeholder="E -> E + T | T&#10;T -> T * F | F&#10;F -> ( E ) | id"></textarea>
+            <div id="nlpBox" style="display:none; margin-bottom:20px;">
+              <div class="field-label">Natural Language Description</div>
+              <textarea id="nlpInput" placeholder="e.g., Exp goes to Exp plus Term or Term"></textarea>
+              <button class="btn btn-p" id="btnTranslate" style="margin-top:10px">Generate BNF</button>
+              <div class="wl-divider" style="margin:20px 0"></div>
+            </div>
+
+            <div class="field-label">final bnf productions</div>
+            <textarea id="grammarInput" placeholder="E -> E + T | T"></textarea>
             <div class="btn-row">
-              <button class="btn btn-p" id="btnRun">&#9654;&nbsp; Run</button>
-              <button class="btn btn-g" id="btnExample">&#8853;&nbsp; Example</button>
+              <button class="btn btn-p" id="btnRun">▶ Run</button>
+              <button class="btn btn-g" id="btnExample">⊕ Example</button>
             </div>
           </div>
         </div>
         <div id="step0Result"></div>
       </div>
 
-      <!-- STEP 1 : FIRST / FOLLOW -->
-      <div class="step-pane" id="pane1">
-        <div class="sh-tag">step 01</div>
-        <div class="sh-h">FIRST &amp; FOLLOW</div>
-        <div class="sh-sub">Computed by fixed-point iteration over the augmented grammar productions.</div>
-        <div id="step1Result"></div>
-      </div>
-
-      <!-- STEP 2 : LR(1) Items -->
-      <div class="step-pane" id="pane2">
-        <div class="sh-tag">step 02</div>
-        <div class="sh-h">LR(1) Items</div>
-        <div class="sh-sub">Canonical collection of LR(1) item sets. <code>•</code> marks the current read position; lookahead follows the comma.</div>
-        <div id="step2Result"></div>
-      </div>
-
-      <!-- STEP 3 : LALR States -->
-      <div class="step-pane" id="pane3">
-        <div class="sh-tag">step 03</div>
-        <div class="sh-h">LALR States</div>
-        <div class="sh-sub">LR(1) states sharing identical cores are merged — their lookaheads are unioned to form LALR(1) states.</div>
-        <div id="step3Result"></div>
-      </div>
-
-      <!-- STEP 4 : Parsing Table -->
-      <div class="step-pane" id="pane4">
-        <div class="sh-tag">step 04</div>
-        <div class="sh-h">Parsing Table</div>
-        <div class="sh-sub">
-          <span style="color:var(--c)">ACTION</span> columns:
-          <span style="color:var(--c)">s</span>N = shift &nbsp;·&nbsp;
-          <span style="color:var(--cp)">r</span>N = reduce &nbsp;·&nbsp;
-          <span style="color:var(--cg)">acc</span> = accept &nbsp;|&nbsp;
-          <span style="color:var(--cp)">GOTO</span> columns: state after reduction
-        </div>
-        <div id="step4Result"></div>
-      </div>
-
-      <!-- STEP 5 : Simulate -->
+      <div class="step-pane" id="pane1"><div id="step1Result"></div></div>
+      <div class="step-pane" id="pane2"><div id="step2Result"></div></div>
+      <div class="step-pane" id="pane3"><div id="step3Result"></div></div>
+      <div class="step-pane" id="pane4"><div id="step4Result"></div></div>
       <div class="step-pane" id="pane5">
-        <div class="sh-tag">step 05</div>
-        <div class="sh-h">Parse String</div>
-        <div class="sh-sub">Enter space-separated tokens drawn from your grammar's terminal alphabet.</div>
         <div class="card">
           <div class="card-bar"><div class="dots"><span></span><span></span><span></span></div><span class="card-title">stdin</span></div>
           <div class="card-body">
-            <div class="field-label">input tokens</div>
             <input type="text" id="inputString" placeholder="id + id * id">
-            <div class="btn-row">
-              <button class="btn btn-p" id="btnParse">&#9654;&nbsp; Parse</button>
-            </div>
+            <button class="btn btn-p" id="btnParse" style="margin-top:10px">▶ Parse</button>
           </div>
         </div>
         <div id="step5Result"></div>
       </div>
+      <div class="step-pane" id="pane6"><div id="step6Result"></div></div>
+    </div>
+  </div>
+</div>
 
-      <!-- STEP 6 : Parse Tree -->
-      <div class="step-pane" id="pane6">
-        <div class="sh-tag">step 06</div>
-        <div class="sh-h">Parse Tree</div>
-        <div class="sh-sub">
-          <span style="color:var(--cp)">&#9632;</span> nonterminals &nbsp;·&nbsp;
-          <span style="color:var(--c)">&#9632;</span> terminals
-        </div>
-        <div id="step6Result"></div>
-      </div>
-
-    </div><!-- .content -->
-  </div><!-- .main -->
-</div><!-- .shell -->
-
-<!--
-  Script load order (dependency chain):
-  1. state.js       — shared State object + utilities
-  2. voice.js       — cross-OS voice assistant
-  3. firstfollow.js — FIRST/FOLLOW computation
-  4. grammar.js     — BNF parsing, LR-elimination, augmentation
-  5. lr1.js         — LR(1) canonical collection
-  6. lalr.js        — LALR state merging
-  7. parsetable.js  — ACTION/GOTO table
-  8. parser.js      — parse simulation + tree builder
-  9. nav.js         — navigation controller (bootstraps the app)
--->
 <script src="js/state.js"></script>
 <script src="js/voice.js"></script>
+<script src="js/nlp.js"></script>
 <script src="js/firstfollow.js"></script>
 <script src="js/grammar.js"></script>
 <script src="js/lr1.js"></script>
@@ -203,6 +130,5 @@
 <script src="js/parser.js"></script>
 <script src="js/nav.js"></script>
 <script>Nav.init();</script>
-
 </body>
 </html>
