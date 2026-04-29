@@ -9,11 +9,11 @@ const Nav = (()=>{
     {label:'Parse Tree',    short:'parse-tree'},
   ];
   const HINTS=[
-    'Enter a Context Free Grammar and click Run.',
+    'Enter a Context Free Grammar or use the NLP Assistant, then click Run.',
     'FIRST and FOLLOW sets drive lookahead computation.',
     'LR(1) items — dot position plus lookahead terminal.',
     'LALR merges states sharing identical item cores.',
-    'The parsing table drives every parser decision. Action columns say shift, reduce, or accept. Goto columns say which state to enter after a reduction.',
+    'The parsing table drives every parser decision.',
     'Type space-separated tokens then click Parse.',
     'Purple nodes are nonterminals. Cyan leaves are terminals.',
   ];
@@ -36,12 +36,10 @@ const Nav = (()=>{
     document.getElementById('tbStep').textContent='welcome';
     if(speak){
       Voice.speakSequence([
-        'Welcome to the LALR Parser Generator.',
-        'LALR stands for Look-Ahead L-R parser.',
-        'It reads input Left to right, produces a Rightmost derivation, and uses one token of Look-Ahead to decide every shift or reduce action.',
-        'LALR parsers power real-world tools like YACC and Bison because they handle most programming languages with very compact tables.',
-        'They work by building the full LR-1 item sets, then merging states that share the same core, cutting table size without losing accuracy for most grammars.',
-        'Select a step from the right sidebar, or click Start to enter your grammar.'
+        'Welcome to the Visionary Parser.',
+        'Visionary Parser is an interactive tool for visualizing LALR compiler design.',
+        'It uses voice guidance and natural language processing to help you explore parsing concepts.',
+        'Select a step from the sidebar, or click Start to begin.'
       ], 120);
     }
   }
@@ -80,27 +78,30 @@ const Nav = (()=>{
     document.getElementById('btnNext').addEventListener('click',()=>goTo(State.currentStep+1));
     document.getElementById('btnStart').addEventListener('click',()=>goTo(0));
 
-    showWelcome(false);
+    // NLP UI Logic
+    document.getElementById('modeNlp').addEventListener('click', () => {
+      document.getElementById('nlpBox').style.display = 'block';
+      document.getElementById('modeTitle').textContent = 'natural language assistant';
+    });
+    document.getElementById('modeBnf').addEventListener('click', () => {
+      document.getElementById('nlpBox').style.display = 'none';
+      document.getElementById('modeTitle').textContent = 'direct bnf entry';
+    });
+    document.getElementById('btnTranslate').addEventListener('click', () => {
+      const res = NLP.toBNF(document.getElementById('nlpInput').value);
+      if(res) document.getElementById('grammarInput').value = res;
+    });
 
+    showWelcome(false);
     const overlay=document.getElementById('tapOverlay');
     let unlocked=false;
-
     function unlock(){
       if(unlocked)return;
       unlocked=true;
-      ['mousedown','touchstart','click','keydown'].forEach(ev=>{
-        overlay.removeEventListener(ev,unlock,true);
-        document.removeEventListener(ev,unlock,true);
-      });
       overlay.classList.add('hidden');
       showWelcome(true);
     }
-
-    ['mousedown','touchstart','click'].forEach(ev=>
-      overlay.addEventListener(ev,unlock,true)
-    );
-    document.addEventListener('keydown',unlock,true);
+    overlay.addEventListener('click',unlock,true);
   }
-
   return{init,goTo};
 })();
